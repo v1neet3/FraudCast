@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>FraudCast — Project Report</title>
+<style>
+  :root {
+    --accent: #4f46e5;
+    --accent-light: #eef2ff;
+    --text: #1e293b;
+    --muted: #64748b;
+    --border: #e2e8f0;
+    --code-bg: #f8fafc;
+    --red: #dc2626;
+    --green: #16a34a;
+    --amber: #d97706;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    font-size: 15px;
+    line-height: 1.7;
+    color: var(--text);
+    background: #fff;
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 48px 40px 80px;
+  }
+
+  /* Cover */
+  .cover {
+    border-bottom: 3px solid var(--accent);
+    padding-bottom: 32px;
+    margin-bottom: 48px;
+  }
+  .cover h1 {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--accent);
+    letter-spacing: -0.5px;
+    margin-bottom: 4px;
+  }
+  .cover .subtitle { font-size: 1.1rem; color: var(--muted); margin-bottom: 20px; }
+  .meta { display: flex; gap: 32px; font-size: 0.875rem; color: var(--muted); }
+  .meta span strong { color: var(--text); }
+
+  /* Sections */
+  h2 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--accent);
+    margin: 48px 0 16px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+    counter-increment: section;
+  }
+  h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 28px 0 10px;
+    color: var(--text);
+  }
+  p { margin-bottom: 12px; }
+
+  /* Tables */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+    margin: 16px 0 24px;
+  }
+  thead tr { background: var(--accent); color: #fff; }
+  thead th { padding: 10px 14px; text-align: left; font-weight: 600; }
+  tbody tr:nth-child(even) { background: var(--accent-light); }
+  tbody td { padding: 9px 14px; border-bottom: 1px solid var(--border); }
+  tbody tr:last-child td { border-bottom: none; }
+
+  /* Code */
+  pre, code {
+    font-family: 'Cascadia Code', 'Fira Mono', 'Menlo', monospace;
+    font-size: 0.82rem;
+  }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--accent);
+    border-radius: 6px;
+    padding: 16px 20px;
+    overflow-x: auto;
+    margin: 14px 0 24px;
+    line-height: 1.6;
+  }
+  code {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 1px 5px;
+    font-size: 0.83em;
+  }
+  pre code { background: none; border: none; padding: 0; font-size: inherit; }
+
+  /* Callout boxes */
+  .callout {
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 20px 0;
+    font-size: 0.9rem;
+  }
+  .callout.info { background: var(--accent-light); border-left: 4px solid var(--accent); }
+  .callout.result { background: #f0fdf4; border-left: 4px solid var(--green); }
+
+  /* Score badge */
+  .badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: 0.78rem;
+    font-weight: 700;
+  }
+  .badge.fraud { background: #fee2e2; color: var(--red); }
+  .badge.legit { background: #dcfce7; color: var(--green); }
+  .badge.chosen { background: #fef9c3; color: #92400e; border: 1px solid #fde68a; }
+
+  /* Architecture diagram */
+  .arch {
+    background: #0f172a;
+    color: #94a3b8;
+    border-radius: 8px;
+    padding: 20px 24px;
+    font-family: 'Cascadia Code', 'Fira Mono', monospace;
+    font-size: 0.78rem;
+    line-height: 1.7;
+    margin: 16px 0 24px;
+    overflow-x: auto;
+  }
+
+  /* Pipeline diagram */
+  .pipeline {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    margin: 20px 0 28px;
+    font-size: 0.82rem;
+  }
+  .pipeline-stage {
+    flex: 1;
+    background: var(--accent-light);
+    border: 2px solid var(--accent);
+    border-radius: 8px;
+    padding: 14px 12px;
+    text-align: center;
+  }
+  .pipeline-stage .weight {
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: var(--accent);
+    display: block;
+    margin: 4px 0;
+  }
+  .pipeline-stage .name { font-weight: 700; color: var(--text); }
+  .pipeline-stage .desc { color: var(--muted); font-size: 0.78rem; margin-top: 4px; }
+  .pipeline-arrow {
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    color: var(--muted);
+    font-size: 1.2rem;
+  }
+  .pipeline-plus {
+    display: flex;
+    align-items: center;
+    padding: 0 4px;
+    font-size: 1.4rem;
+    font-weight: 300;
+    color: var(--accent);
+  }
+
+  /* Footer */
+  footer {
+    margin-top: 64px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    font-size: 0.8rem;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  @media print {
+    body { padding: 24px 32px; }
+    h2 { page-break-after: avoid; }
+    pre, table { page-break-inside: avoid; }
+    .pipeline { flex-wrap: wrap; }
+  }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <h1>FraudCast</h1>
+  <div class="subtitle">UPI Transaction Fraud Detection — Project Report</div>
+  <div class="meta">
+    <span><strong>Author:</strong> Vineet Hankare</span>
+    <span><strong>Date:</strong> June 2026</span>
+    <span><strong>Repo:</strong> github.com/v1neet3/FraudCast (private)</span>
+  </div>
+</div>
+
+<!-- 1 -->
+<h2>Abstract</h2>
+<p>FraudCast is an end-to-end machine learning system for detecting fraudulent UPI (Unified Payments Interface) transactions on personal financial data. The system combines anomaly detection, physics-based location verification, and an ensemble classifier into a unified three-stage pipeline. A FastAPI backend serves model predictions in real time, and a React dashboard provides both interactive transaction scoring and a browsable history of all flagged transactions.</p>
+<div class="callout result">
+  At threshold 0.30 the system achieves <strong>95% recall</strong> on synthesized fraud with an average fraud score of 0.169 across 779 scored transactions.
+</div>
+
+<!-- 2 -->
+<h2>Motivation</h2>
+<p>Consumer UPI fraud is rising in India — phishing, SIM swaps, and merchant impersonation are common attack vectors. Individuals have no transparent tool to understand <em>why</em> a transaction was flagged or to score transactions proactively. FraudCast was built to fill this gap using only a personal Google Pay export, with no dependency on external APIs or cloud services.</p>
+
+<!-- 3 -->
+<h2>Dataset</h2>
+<table>
+  <thead><tr><th>Property</th><th>Value</th></tr></thead>
+  <tbody>
+    <tr><td>Source</td><td>Personal Google Pay / UPI export</td></tr>
+    <tr><td>Records</td><td>699 transactions</td></tr>
+    <tr><td>Date range</td><td>October 2021 – March 2024</td></tr>
+    <tr><td>Original fraud labels</td><td>None — all Legit</td></tr>
+    <tr><td>Key columns</td><td>Date, Time, Amount, Domain, Location, Latitude, Longitude, Recipient</td></tr>
+  </tbody>
+</table>
+<p>Because the raw export contains zero fraud labels, a synthesis step is mandatory. The data is not included in the repository as it contains personal payment history.</p>
+
+<!-- 4 -->
+<h2>Fraud Synthesis</h2>
+<p>80 synthetic fraud transactions were injected using four realistic attack patterns:</p>
+<table>
+  <thead><tr><th>Pattern</th><th>Share</th><th>Mechanism</th></tr></thead>
+  <tbody>
+    <tr><td><code>amount_spike</code></td><td>30%</td><td>Amount set to 6–15× the domain average</td></tr>
+    <tr><td><code>location_jump</code></td><td>25%</td><td>GPS teleported to Delhi or Bangalore with only 15–60 min gap</td></tr>
+    <tr><td><code>off_hours</code></td><td>25%</td><td>Transaction time rewritten to 1:00–5:59 AM</td></tr>
+    <tr><td><code>new_recipient</code></td><td>20%</td><td>Payee replaced with unknown vendor, amount ₹800–3,500</td></tr>
+  </tbody>
+</table>
+<p>Each synthesized row inherits all other fields from a randomly sampled real transaction to preserve plausible metadata. Final dataset: <strong>779 transactions</strong> — 699 Legit + 80 Fraud.</p>
+
+<!-- 5 -->
+<h2>Feature Engineering</h2>
+<p>13 features are computed per transaction using an <strong>expanding window</strong> — each row only sees data from prior transactions, eliminating look-ahead leakage. Domain statistics are computed exclusively on Legit training data.</p>
+<table>
+  <thead><tr><th>Feature</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr><td><code>amount_zscore</code></td><td>(Amount − domain mean) / domain std</td></tr>
+    <tr><td><code>amount_ratio</code></td><td>Amount / domain mean</td></tr>
+    <tr><td><code>hour</code></td><td>Hour of transaction (0–23)</td></tr>
+    <tr><td><code>is_night</code></td><td>1 if hour ∈ [22:00, 05:59]</td></tr>
+    <tr><td><code>is_weekend</code></td><td>1 if Saturday or Sunday</td></tr>
+    <tr><td><code>recipient_is_new</code></td><td>1 if payee never seen before in history</td></tr>
+    <tr><td><code>recipient_freq</code></td><td>Count of prior payments to the same payee</td></tr>
+    <tr><td><code>location_is_usual</code></td><td>1 if location string seen in Legit history</td></tr>
+    <tr><td><code>dist_from_last_km</code></td><td>Haversine distance from previous transaction (km)</td></tr>
+    <tr><td><code>time_gap_min</code></td><td>Minutes since previous transaction</td></tr>
+    <tr><td><code>implied_speed_kmh</code></td><td>dist_from_last / (time_gap / 60)</td></tr>
+    <tr><td><code>txn_count_1h</code></td><td>Transactions in the last 1 hour</td></tr>
+    <tr><td><code>txn_count_24h</code></td><td>Transactions in the last 24 hours</td></tr>
+  </tbody>
+</table>
+
+<!-- 6 -->
+<h2>Pipeline Architecture</h2>
+<p>The pipeline runs three sequential stages. Each produces a score in [0, 1]; the weighted sum is the final fraud score:</p>
+<pre>fraud_score = 0.25 × IF_score  +  0.20 × LOC_score  +  0.55 × CLF_score</pre>
+
+<div class="pipeline">
+  <div class="pipeline-stage">
+    <div class="name">Isolation Forest</div>
+    <span class="weight">25%</span>
+    <div class="desc">Amount & time-of-day anomaly detection on Legit-only training data</div>
+  </div>
+  <div class="pipeline-plus">+</div>
+  <div class="pipeline-stage">
+    <div class="name">Location Check</div>
+    <span class="weight">20%</span>
+    <div class="desc">Haversine speed ÷ 150 km/h ceiling — no external API required</div>
+  </div>
+  <div class="pipeline-plus">+</div>
+  <div class="pipeline-stage">
+    <div class="name">AWF Classifier</div>
+    <span class="weight">55%</span>
+    <div class="desc">GBM + GaussianNB + SVC ensemble, accuracy-weighted fusion</div>
+  </div>
+</div>
+
+<h3>Stage 1 — Isolation Forest</h3>
+<p>Trained exclusively on Legit transactions using 5 features: <code>amount_zscore</code>, <code>amount_ratio</code>, <code>hour</code>, <code>is_night</code>, <code>txn_count_1h</code>. The raw decision function is min-max normalised and inverted so higher values = more anomalous. Contamination = 0.10.</p>
+
+<h3>Stage 2 — Location Check (Haversine)</h3>
+<p>Implied travel speed between consecutive transactions is computed offline using the Haversine formula:</p>
+<pre>speed (km/h) = distance_km / (time_gap_min / 60)
+LOC_score    = min(speed / 150, 1.0)</pre>
+<p>A ceiling of 150 km/h is used. A transaction implying 450 km/h travel (e.g. Mumbai → Delhi in 2 hours) scores 1.0 — physically impossible without air travel and a matching time gap.</p>
+
+<h3>Stage 3 — Adaptive Weighted Fusion (AWF)</h3>
+<table>
+  <thead><tr><th>Classifier</th><th>Role</th></tr></thead>
+  <tbody>
+    <tr><td>GradientBoostingClassifier (100 trees)</td><td>Primary classifier — captures feature interactions</td></tr>
+    <tr><td>GaussianNB</td><td>Fast probabilistic baseline</td></tr>
+    <tr><td>SVC (RBF kernel, probability=True)</td><td>Strong decision-boundary classifier</td></tr>
+  </tbody>
+</table>
+<p>Each classifier is weighted by its accuracy on a held-out 20% validation split of the SMOTE-resampled training data:</p>
+<pre>weight_i      = accuracy_i / Σ accuracy_j
+clf_score(x) = Σ weight_i × P(fraud | x)_i</pre>
+
+<!-- 7 -->
+<h2>Training Strategy</h2>
+<h3>Time-based Split</h3>
+<p>A strict temporal split is used — no random shuffling. Shuffling would leak future transaction patterns into the past and inflate metrics.</p>
+<table>
+  <thead><tr><th>Split</th><th>Cutoff</th><th>Transactions</th><th>Fraud</th></tr></thead>
+  <tbody>
+    <tr><td>Train</td><td>Before 2023-07-01</td><td>409</td><td>40</td></tr>
+    <tr><td>Test</td><td>After 2023-07-01</td><td>370</td><td>40</td></tr>
+  </tbody>
+</table>
+
+<h3>Class Imbalance — SMOTE</h3>
+<p>The raw training set is ~9:1 Legit:Fraud. SMOTE generates synthetic minority samples in feature space on the training split only, producing a balanced dataset for the AWF classifier without duplicating real rows or leaking test data.</p>
+
+<!-- 8 -->
+<h2>Evaluation &amp; Threshold Tuning</h2>
+<table>
+  <thead><tr><th>Threshold</th><th>Fraud Caught (of 40)</th><th>Recall</th><th>False Positives</th><th>Precision</th></tr></thead>
+  <tbody>
+    <tr><td>0.35</td><td>38</td><td>95.0%</td><td>14</td><td>73.1%</td></tr>
+    <tr style="background:#fef9c3">
+      <td><strong>0.30</strong> <span class="badge chosen">chosen</span></td>
+      <td><strong>38</strong></td><td><strong>95.0%</strong></td><td>29</td><td>56.7%</td>
+    </tr>
+    <tr><td>0.25</td><td>39</td><td>97.5%</td><td>58</td><td>40.2%</td></tr>
+  </tbody>
+</table>
+<div class="callout info">
+  <strong>Rationale:</strong> 0.30 and 0.35 achieve identical recall. The 15 additional false positives at 0.30 are acceptable for a personal monitoring tool — missing real fraud is costlier than a false alert. Moving to 0.25 gains one extra fraud catch at the cost of doubling false positives without meaningful recall improvement.
+</div>
+
+<!-- 9 -->
+<h2>System Architecture</h2>
+<div class="arch">┌─────────────────────────┐        ┌──────────────────────────────┐
+│   React Frontend        │  HTTP  │   FastAPI Backend            │
+│   (Vite + TypeScript)   │◄──────►│   (Python 3 + uvicorn)       │
+│                         │  /api  │                              │
+│  ┌──────────────────┐   │        │  ┌────────────────────────┐  │
+│  │ Score Tab        │   │        │  │ FraudPipeline          │  │
+│  │ · Form input     │   │        │  │ startup() trains all   │  │
+│  │ · Fraud gauge    │   │        │  │ models on first boot   │  │
+│  │ · Stage bars     │   │        │  └────────────────────────┘  │
+│  └──────────────────┘   │        │                              │
+│  ┌──────────────────┐   │        │  GET  /api/health            │
+│  │ Dashboard Tab    │   │        │  GET  /api/stats             │
+│  │ · Stats cards    │   │        │  GET  /api/transactions      │
+│  │ · Filter table   │   │        │  POST /api/score             │
+│  │ · Pagination     │   │        └──────────────────────────────┘
+│  └──────────────────┘   │
+└─────────────────────────┘</div>
+
+<h3>Backend</h3>
+<p>FastAPI with <code>asynccontextmanager</code> lifespan — pipeline training runs in a thread executor so the async event loop is never blocked. All 779 transaction scores are precomputed at startup for instant dashboard responses. CORS is enabled for localhost dev ports.</p>
+
+<h3>Frontend Components</h3>
+<table>
+  <thead><tr><th>Component</th><th>Function</th></tr></thead>
+  <tbody>
+    <tr><td><code>App.tsx</code></td><td>Tab layout, polls <code>/api/health</code> every 2 s until ready, loading banner while model trains</td></tr>
+    <tr><td><code>FraudGauge.tsx</code></td><td>SVG semicircle gauge using <code>strokeDasharray</code>, colour-coded green / amber / red by score</td></tr>
+    <tr><td><code>ScoreBreakdown.tsx</code></td><td>Per-stage progress bars with accuracy weights displayed</td></tr>
+    <tr><td><code>ScorerTab.tsx</code></td><td>Transaction form with optional previous-transaction accordion for the location check stage</td></tr>
+    <tr><td><code>DashboardTab.tsx</code></td><td>4 stat cards, search + domain + verdict filters, sortable paginated table (50 rows/page)</td></tr>
+  </tbody>
+</table>
+
+<!-- 10 -->
+<h2>Results Summary</h2>
+<table>
+  <thead><tr><th>Metric</th><th>Value</th></tr></thead>
+  <tbody>
+    <tr><td>Total transactions scored</td><td>779</td></tr>
+    <tr><td>Fraud flagged <span class="badge fraud">FRAUD</span></td><td>120</td></tr>
+    <tr><td>Legitimate <span class="badge legit">LEGIT</span></td><td>659</td></tr>
+    <tr><td>Average fraud score</td><td>0.169</td></tr>
+    <tr><td>Test recall</td><td>95.0% (38 / 40)</td></tr>
+    <tr><td>Test precision</td><td>56.7%</td></tr>
+  </tbody>
+</table>
+
+<h3>Example — High-Risk Transaction</h3>
+<p>₹25,000 at 2:30 AM, 1,200+ km implied travel (Mumbai → Delhi in 90 min):</p>
+<pre>{
+  "fraud_score": 0.8152,
+  "if_score":   1.0,      // extreme amount for domain
+  "loc_score":  1.0,      // impossible travel speed
+  "clf_score":  0.664,    // classifier strongly agrees
+  "verdict":    "FRAUD",
+  "threshold":  0.3
+}</pre>
+
+<!-- 11 -->
+<h2>Limitations</h2>
+<ul style="margin-left:20px;margin-bottom:16px;line-height:2">
+  <li><strong>Synthetic fraud only</strong> — four patterns are covered; novel attack vectors may score low</li>
+  <li><strong>No live GPS</strong> — coordinates were added manually per merchant; the location check is most useful with real-time GPS</li>
+  <li><strong>Static domain stats</strong> — mean/std are fixed at training time; new merchant categories fall back to global defaults</li>
+  <li><strong>No persistence</strong> — models are retrained from scratch on every server start (~20–30 s)</li>
+</ul>
+
+<!-- 12 -->
+<h2>Future Work</h2>
+<ul style="margin-left:20px;margin-bottom:16px;line-height:2">
+  <li>Online learning — incremental domain stat updates as new transactions arrive</li>
+  <li>Real fraud labels — integrate with bank dispute records to replace synthesized cases</li>
+  <li>Push alerts — score transactions automatically via UPI webhook or periodic statement fetch</li>
+  <li>Model persistence — serialise trained artefacts with joblib for instant startup</li>
+  <li>Dashboard export — PDF/CSV download of flagged transactions</li>
+</ul>
+
+<!-- 13 -->
+<h2>Technology Stack</h2>
+<table>
+  <thead><tr><th>Layer</th><th>Technology</th></tr></thead>
+  <tbody>
+    <tr><td>Data processing</td><td>Python 3, pandas, NumPy</td></tr>
+    <tr><td>ML models</td><td>scikit-learn — IsolationForest, GradientBoostingClassifier, GaussianNB, SVC</td></tr>
+    <tr><td>Oversampling</td><td>imbalanced-learn (SMOTE)</td></tr>
+    <tr><td>API</td><td>FastAPI, uvicorn</td></tr>
+    <tr><td>Frontend</td><td>React 18, Vite, TypeScript, Tailwind CSS, TanStack Query v5</td></tr>
+    <tr><td>Notebooks</td><td>Jupyter</td></tr>
+  </tbody>
+</table>
+
+<footer>
+  FraudCast · Vineet Hankare · June 2026 · github.com/v1neet3/FraudCast
+</footer>
+
+</body>
+</html>

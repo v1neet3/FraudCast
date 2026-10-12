@@ -1,0 +1,40 @@
+# Data — contains personal transaction history
+Code_v1neet/potoro.csv
+
+# Archives
+*.rar
+
+# Build artifacts
+app/tsconfig.*.tsbuildinfo
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+dist/
+.eggs/
+
+# Node
+app/node_modules/
+app/dist/
+app/.vite/
+
+# Jupyter checkpoints
+**/.ipynb_checkpoints/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+nohup.out
+
+# Personal data and notebook exports
+*.csv
+Code_v1neet/output.html
+*_out.ipynb
+.claude/

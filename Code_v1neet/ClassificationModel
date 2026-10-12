@@ -1,0 +1,186 @@
+{
+ "nbformat": 4,
+ "nbformat_minor": 0,
+ "metadata": {
+  "colab": {
+   "provenance": []
+  },
+  "kernelspec": {
+   "name": "python3",
+   "display_name": "Python 3"
+  },
+  "language_info": {
+   "name": "python"
+  }
+ },
+ "cells": [
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "colab": {
+     "base_uri": "https://localhost:8080/"
+    },
+    "id": "qvHWxfqMwq-q",
+    "executionInfo": {
+     "status": "ok",
+     "timestamp": 1711096888337,
+     "user_tz": -330,
+     "elapsed": 17451,
+     "user": {
+      "displayName": "shaiban mulla",
+      "userId": "07649196369919375452"
+     }
+    },
+    "outputId": "c2f59711-cf1d-4e85-84db-5c91853c9ecf"
+   },
+   "outputs": [],
+   "source": [
+    "import pandas as pd\n",
+    "from sklearn.model_selection import train_test_split\n",
+    "from sklearn.ensemble import GradientBoostingClassifier\n",
+    "from sklearn.naive_bayes import GaussianNB\n",
+    "from sklearn.svm import SVC\n",
+    "from sklearn.metrics import accuracy_score\n",
+    "from sklearn.preprocessing import MinMaxScaler\n",
+    "import numpy as np\n",
+    "\n",
+    "class AdaptiveWeightedFusion:\n",
+    "    def __init__(self):\n",
+    "        self.random_forest = GradientBoostingClassifier()\n",
+    "        self.naive_bayes = GaussianNB()\n",
+    "        self.svm = SVC(probability=True)  # Initialize Support Vector Machine classifier with probability estimation\n",
+    "        self.scaler = MinMaxScaler()\n",
+    "\n",
+    "    def fit(self, X_train, y_train, X_val, y_val):\n",
+    "        # Preprocess the 'Time' feature into seconds\n",
+    "        X_train['Time_seconds'] = pd.to_timedelta(X_train['Time']).dt.total_seconds()\n",
+    "        X_val['Time_seconds'] = pd.to_timedelta(X_val['Time']).dt.total_seconds()\n",
+    "\n",
+    "        # Normalize features\n",
+    "        self.scaler.fit(X_train[['Amount', 'Time_seconds']])\n",
+    "        X_train_scaled = self.scaler.transform(X_train[['Amount', 'Time_seconds']])\n",
+    "        X_val_scaled = self.scaler.transform(X_val[['Amount', 'Time_seconds']])\n",
+    "\n",
+    "        # Train Gradient Boosting Classifier (Random Forest)\n",
+    "        self.random_forest.fit(X_train_scaled, y_train)\n",
+    "\n",
+    "        # Train Naive Bayes\n",
+    "        self.naive_bayes.fit(X_train_scaled, y_train)\n",
+    "\n",
+    "        # Train Support Vector Machine\n",
+    "        self.svm.fit(X_train_scaled, y_train)\n",
+    "\n",
+    "        # Calculate accuracies on validation set for all classifiers\n",
+    "        rf_acc = accuracy_score(y_val, self.random_forest.predict(X_val_scaled))\n",
+    "        nb_acc = accuracy_score(y_val, self.naive_bayes.predict(X_val_scaled))\n",
+    "        svm_acc = accuracy_score(y_val, self.svm.predict(X_val_scaled))\n",
+    "\n",
+    "        # Calculate weights based on validation accuracies\n",
+    "        total_acc = rf_acc + nb_acc + svm_acc\n",
+    "        self.rf_weight = rf_acc / total_acc\n",
+    "        self.nb_weight = nb_acc / total_acc\n",
+    "        self.svm_weight = svm_acc / total_acc\n",
+    "\n",
+    "    def predict(self, X):\n",
+    "        # Preprocess the 'Time' feature into seconds\n",
+    "        X['Time_seconds'] = pd.to_timedelta(X['Time']).dt.total_seconds()\n",
+    "\n",
+    "        # Normalize features\n",
+    "        X_scaled = self.scaler.transform(X[['Amount', 'Time_seconds']])\n",
+    "\n",
+    "        # Predict probabilities from all classifiers\n",
+    "        rf_probs = self.random_forest.predict_proba(X_scaled)\n",
+    "        nb_probs = self.naive_bayes.predict_proba(X_scaled)\n",
+    "        svm_probs = self.svm.predict_proba(X_scaled)\n",
+    "\n",
+    "        # Combine predictions using adaptive weights\n",
+    "        weighted_probs = (self.rf_weight * rf_probs) + (self.nb_weight * nb_probs) + (self.svm_weight * svm_probs)\n",
+    "\n",
+    "        # Predict the class with the highest probability\n",
+    "        predicted_labels = weighted_probs.argmax(axis=1)\n",
+    "\n",
+    "        # Convert predicted labels to strings\n",
+    "        predicted_labels_str = np.array(['Legit' if label == 1 else 'Fraud' for label in predicted_labels])\n",
+    "\n",
+    "        return predicted_labels_str\n",
+    "\n",
+    "# Load the transaction dataset\n",
+    "data = pd.read_csv(\"/content/Firsttest.csv\")  # Replace \"transaction_dataset.csv\" with your dataset file path\n",
+    "\n",
+    "# Select features (amount, time, domain) and target variable\n",
+    "features = data[['Amount', 'Time', 'Domain']]\n",
+    "target = data['Classification']  # Assuming 'Classification' is the target column\n",
+    "\n",
+    "# Split the data into training, validation, and testing sets\n",
+    "X_train, X_temp, y_train, y_temp = train_test_split(features, target, test_size=0.3, random_state=42)\n",
+    "X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.5, random_state=42)\n",
+    "\n",
+    "# Initialize the Adaptive Weighted Fusion classifier\n",
+    "awf = AdaptiveWeightedFusion()\n",
+    "\n",
+    "# Train the classifier\n",
+    "awf.fit(X_train, y_train, X_val, y_val)\n",
+    "\n",
+    "# Prompt user to enter transaction details for testing\n",
+    "try:\n",
+    "    amount = float(input(\"Enter transaction amount: \"))\n",
+    "    time = input(\"Enter transaction time (hh:mm:ss): \")\n",
+    "    domain = input(\"Enter transaction domain: \")\n",
+    "except ValueError:\n",
+    "    print(\"Invalid input. Please enter numerical value for amount.\")\n",
+    "    exit()\n",
+    "\n",
+    "# Create a DataFrame for the dummy transaction\n",
+    "dummy_transaction = pd.DataFrame({'Amount': [amount], 'Time': [time], 'Domain': [domain]})\n",
+    "\n",
+    "# Make predictions on the dummy transaction\n",
+    "predicted_label = awf.predict(dummy_transaction)\n",
+    "\n",
+    "# Display the predicted label\n",
+    "print(\"Predicted Classification:\", predicted_label[0])\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "source": [
+    "from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score\n",
+    "\n",
+    "# Make predictions on the validation set\n",
+    "y_pred_val = awf.predict(X_val)\n",
+    "\n",
+    "# Compute evaluation metrics\n",
+    "accuracy = accuracy_score(y_val, y_pred_val)\n",
+    "precision = precision_score(y_val, y_pred_val, pos_label='Fraud')  # Assuming 'Fraud' is the positive class\n",
+    "recall = recall_score(y_val, y_pred_val, pos_label='Fraud')  # Assuming 'Fraud' is the positive class\n",
+    "f1 = f1_score(y_val, y_pred_val, pos_label='Fraud')  # Assuming 'Fraud' is the positive class\n",
+    "\n",
+    "# Display evaluation metrics\n",
+    "print(\"Accuracy:\", accuracy)\n",
+    "print(\"Precision:\", precision)\n",
+    "print(\"Recall:\", recall)\n",
+    "print(\"F1 Score:\", f1)\n",
+    "\n"
+   ],
+   "metadata": {
+    "colab": {
+     "base_uri": "https://localhost:8080/"
+    },
+    "id": "E84hFsQD2rZ9",
+    "executionInfo": {
+     "status": "ok",
+     "timestamp": 1711022708801,
+     "user_tz": -330,
+     "elapsed": 491,
+     "user": {
+      "displayName": "shaiban mulla",
+      "userId": "07649196369919375452"
+     }
+    },
+    "outputId": "1358d1a2-c7d8-4913-a8ee-0ab94bd5b102"
+   },
+   "execution_count": null,
+   "outputs": []
+  }
+ ]
+}
